@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Glofox Suite - Setup (Konfiguracja)
 // @namespace    glofox
-// @version      1.0
+// @version      1.1
 // @description  Kreator konfiguracji wtyczek Glofox Suite: aktywuje licencję dla Twojego klubu i ustawia klienta sprzedażowego oraz kaucję. Uruchom raz po zakupie; zostaje jako „Ustawienia wtyczek".
 // @match        https://app.glofox.com/*
 // @run-at       document-idle
@@ -34,6 +34,14 @@
     REQUEST_TIMEOUT_MS: 15000,                // 15s — bufor na cold-start Vercela (było 10s)
     LOCATION_RETRY_MS: 10000,                 // how long to wait for the session locationId
     LOCATION_POLL_INTERVAL_MS: 300,
+
+    // Wygaśnięcie / odnowa (model: 12 mies. + odnowa 50%). Wygaśnięcie MA zęby (twardy stop),
+    // ale outage NIE — patrz enforce(). RENEWAL_URL to placeholder (Opcja B): teraz cennik/kontakt,
+    // podmień na live renewal-checkout przy przejściu Stripe na live.
+    RENEWAL_URL: 'https://wtyczki.wotan91.pl/#cennik',
+    REMINDER_DAYS: 7,                          // reminder przez ostatnie N dni ważności
+    NUDGE_STORAGE_KEY: 'glofox:license:nudge', // throttle remindera „raz dziennie" (data|klucz)
+    MS_PER_DAY: 86400000,
 
     // State
     currentConfig: null,
@@ -85,7 +93,20 @@
       //    misconfig, brak łączności) → działaj z ostatniej potwierdzonej licencji albo cicho odpuść.
       //    Ciężar egzekwowania przeniesiony na serwer + panel (telemetria, „Uwagi/problemy").
       if (result && result.valid) {
-        return this._bindAndFinish(result.config || {}, result);
+        // Wygaśnięcie MA zęby: sprawdzamy LOKALNIE (z expiresAt), więc łapie też świeży cache (<1h)
+        // i grace/outage (który zwraca cached.data z valid:true). Wygaśnięcie to fakt czasowy — nie
+        // zależy od łączności. Niewygasła licencja przy outage dalej działa (grace, bez zmian).
+        const exp = this._expiryInfo(result);
+        if (exp && exp.expired) {
+          this._renewalNotice({ expired: true });
+          return null;
+        }
+        const cfg = await this._bindAndFinish(result.config || {}, result);
+        // Reminder przez ostatnie REMINDER_DAYS dni (raz dziennie) — tylko dla realnie związanego klubu.
+        if (cfg && exp && exp.daysLeft > 0 && exp.daysLeft <= this.REMINDER_DAYS) {
+          this._maybeNudge(exp.daysLeft);
+        }
+        return cfg;
       }
       const reason = (result && result.reason) || '';
 
@@ -95,12 +116,20 @@
         return null;
       }
 
-      // Łagodnie dla wygasłej / misconfig: działaj z OSTATNIEJ POTWIERDZONEJ licencji (config w cache),
-      //   nadal egzekwując binding per-klub (wygasła na cudzym klubie i tak zostanie zablokowana).
-      if (reason === 'expired' || reason === 'misconfigured') {
+      // Wygasła (serwer definitywnie 403 expired przy stale cache) → twardy stop z linkiem odnowy.
+      //   Backstop: zwykle łapie to już lokalny stop wyżej (expired NIE kasuje cache — :218), ale gdy
+      //   cache był stale i serwer potwierdza wygaśnięcie, blokujemy tutaj. Model odnowy MUSI mieć zęby.
+      if (reason === 'expired') {
+        this._renewalNotice({ expired: true });
+        return null;
+      }
+
+      // Misconfig (NASZ błąd, np. locationId='PENDING' nieuzupełniony) → łagodnie: działaj z ostatniej
+      //   potwierdzonej licencji (config w cache), nadal egzekwując binding per-klub. To nie wina klienta.
+      if (reason === 'misconfigured') {
         const cached = this._readCache();
         if (cached && cached.data && cached.data.config) {
-          console.info(`[GLOFOX] Tryb łagodny (${reason}) — działam z ostatniej potwierdzonej licencji.`);
+          console.info('[GLOFOX] Tryb łagodny (misconfigured) — działam z ostatniej potwierdzonej licencji.');
           return this._bindAndFinish(cached.data.config, cached.data);
         }
       }
@@ -351,6 +380,68 @@
           if (!document.body) return;
           document.body.appendChild(el);
           setTimeout(() => { try { el.remove(); } catch (_e) { /* noop */ } }, 8000);
+        };
+        if (document.body) mount(); else document.addEventListener('DOMContentLoaded', mount, { once: true });
+      } catch (_e) { /* noop */ }
+    },
+
+    // ---- Wygaśnięcie / odnowa ---------------------------------------------------
+    // Lokalne liczenie z expiresAt (ISO z /api/validate). Brak/zły format → null (FAIL-OPEN:
+    // nie wyłączamy działającej licencji przez niepoprawną datę). daysLeft: dodatnie = zostało N dni.
+    _expiryInfo(data) {
+      const iso = data && data.expiresAt;
+      if (!iso) return null;
+      const exp = new Date(iso).getTime();
+      if (!exp || isNaN(exp)) return null;
+      const now = Date.now();
+      return { expired: now > exp, daysLeft: Math.ceil((exp - now) / this.MS_PER_DAY) };
+    },
+
+    // Reminder o zbliżającym się końcu — raz dziennie na klucz (throttle w GM storage: „YYYY-MM-DD|klucz").
+    _maybeNudge(daysLeft) {
+      try {
+        const token = new Date().toISOString().slice(0, 10) + '|' + (this.licenseKey || '');
+        if (GM_getValue(this.NUDGE_STORAGE_KEY) === token) return;
+        GM_setValue(this.NUDGE_STORAGE_KEY, token);
+      } catch (_e) { /* brak GM storage → pokaż mimo to */ }
+      this._renewalNotice({ expired: false, daysLeft });
+    },
+
+    // Notka o odnowie (wygaśnięcie / zbliżający się koniec). Świadomie mała, neutralna (NIE czerwona,
+    // NIE full-screen) — z klikalnym linkiem odnowy i „×". expired → zostaje na ekranie (stop musi być
+    // widoczny); reminder → auto-znika po 15 s. Cała praca na DOM w try/catch → w node/harness no-op.
+    _renewalNotice({ expired, daysLeft }) {
+      const msg = expired
+        ? 'Licencja wygasła.'
+        : `Licencja wygasa za ${daysLeft} ${daysLeft === 1 ? 'dzień' : 'dni'}.`;
+      console.info(`[GLOFOX] ${msg} Odnów: ${this.RENEWAL_URL}`);
+      try {
+        const id = 'glofox-license-renewal';
+        if (document.getElementById(id)) return;
+        const el = document.createElement('div');
+        el.id = id;
+        el.style.cssText = `position: fixed; bottom: 16px; right: 16px; max-width: 320px; background: #2f2f2f; color: #fff; padding: 12px 30px 12px 14px; border-radius: 8px; font: 13px/1.45 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; box-shadow: 0 4px 16px rgba(0,0,0,0.28); z-index: 2147483647; opacity: 0.97;`;
+        const close = document.createElement('span');
+        close.textContent = '×';
+        close.setAttribute('role', 'button');
+        close.setAttribute('aria-label', 'Zamknij');
+        close.style.cssText = 'position:absolute; top:6px; right:10px; cursor:pointer; opacity:.7; font-size:16px; line-height:1;';
+        close.addEventListener('click', () => { try { el.remove(); } catch (_e) { /* noop */ } });
+        const text = document.createElement('div');
+        text.textContent = `Wtyczki: ${msg}`;
+        const link = document.createElement('a');
+        link.href = this.RENEWAL_URL;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        link.textContent = 'Odnów licencję →';
+        link.style.cssText = 'display:inline-block; margin-top:6px; color:#8ab4ff; font-weight:600; text-decoration:none;';
+        el.appendChild(close);
+        el.appendChild(text);
+        el.appendChild(link);
+        const mount = () => {
+          if (!document.body) return;
+          document.body.appendChild(el);
+          if (!expired) setTimeout(() => { try { el.remove(); } catch (_e) { /* noop */ } }, 15000);
         };
         if (document.body) mount(); else document.addEventListener('DOMContentLoaded', mount, { once: true });
       } catch (_e) { /* noop */ }
