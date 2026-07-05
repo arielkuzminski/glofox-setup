@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Glofox Suite - Setup (Konfiguracja)
-// @namespace    glofox
-// @version      1.2
-// @description  Kreator konfiguracji wtyczek Glofox Suite: aktywuje licencję dla Twojego klubu i ustawia klienta sprzedażowego oraz kaucję. Uruchom raz po zakupie; zostaje jako „Ustawienia wtyczek".
+// @name         Klub - Setup (Konfiguracja)
+// @namespace    wotan91
+// @version      1.3
+// @description  Kreator konfiguracji pakietu wtyczek: aktywuje licencję dla Twojego klubu i ustawia klienta sprzedażowego oraz kaucję. Uruchom raz po zakupie; zostaje jako „Ustawienia wtyczek".
 // @match        https://app.glofox.com/*
 // @run-at       document-idle
 // @grant        GM_xmlhttpRequest
