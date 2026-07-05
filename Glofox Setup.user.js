@@ -346,7 +346,7 @@
         const el = document.createElement('div');
         el.id = 'glofox-license-notice';
         el.style.cssText = `position: fixed; bottom: 16px; right: 16px; max-width: 300px; background: #2f2f2f; color: #fff; padding: 10px 14px; border-radius: 8px; font: 13px/1.4 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; box-shadow: 0 4px 16px rgba(0,0,0,0.25); z-index: 2147483647; opacity: 0.96;`;
-        el.textContent = `Glofox Suite: ${message}`;
+        el.textContent = `Wtyczki: ${message}`;
         const mount = () => {
           if (!document.body) return;
           document.body.appendChild(el);
@@ -550,7 +550,7 @@
   function addFab() {
     injectCssOnce();
     if (document.getElementById('gfxs-fab')) return;
-    const fab = el('<button id="gfxs-fab" title="Konfiguracja wtyczek Glofox">⚙ Ustawienia wtyczek</button>');
+    const fab = el('<button id="gfxs-fab" title="Konfiguracja wtyczek">⚙ Ustawienia wtyczek</button>');
     document.body.appendChild(fab);
     fab.onclick = () => main(true);
     return fab;
