@@ -188,7 +188,7 @@
     /**
      * Validate license against server. Fresh cache (≤1h) short-circuits the request.
      * FAIL-CLOSED: a definitive `valid:false` blocks immediately and wipes the cache;
-     * an outage falls back to cache only while it is within the 48h grace window,
+     * an outage falls back to cache only while it is within the 72h grace window,
      * afterwards a blocking "server unreachable" result is returned.
      */
     async validate() {
