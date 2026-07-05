@@ -18,7 +18,7 @@
   "use strict";
 
   // === LICENSE MODULE START ===
-  const GLOFOX_LICENSE = {
+  const KLUB_LICENSE = {
     LICENSE_SERVER: 'https://glofox-license-api.vercel.app',
     LICENSE_CACHE_KEY: 'glofox:license:cache',
     LICENSE_KEY_STORAGE_KEY: 'glofox:license:key',
@@ -28,7 +28,7 @@
     // przez gated endpoint, serwer podmienia ten placeholder na prawdziwy klucz — dzieki temu runtime
     // NIE zalezy od ?key= w URL-u strony (app.glofox.com nigdy go nie ma). Wartosc '__...__'
     // (niepodmieniona) oznacza "brak wpieczonego klucza" i jest ignorowana.
-    BAKED_LICENSE_KEY: '__GLOFOX_LICENSE_KEY__',
+    BAKED_LICENSE_KEY: '__KLUB_LICENSE_KEY__',
     CACHE_FRESH_MS: 60 * 60 * 1000,           // 1h — within this window the server is not asked
     CACHE_GRACE_MS: 72 * 60 * 60 * 1000,      // 72h — cache survives a server OUTAGE (weekend AFK bufor)
     REQUEST_TIMEOUT_MS: 15000,                // 15s — bufor na cold-start Vercela (było 10s)
@@ -129,14 +129,14 @@
       if (reason === 'misconfigured') {
         const cached = this._readCache();
         if (cached && cached.data && cached.data.config) {
-          console.info('[GLOFOX] Tryb łagodny (misconfigured) — działam z ostatniej potwierdzonej licencji.');
+          console.info('[KLUB] Tryb łagodny (misconfigured) — działam z ostatniej potwierdzonej licencji.');
           return this._bindAndFinish(cached.data.config, cached.data);
         }
       }
 
       // Outage (poza oknem grace lub brak cache) i wszystko inne → CICHO, bez modala. Nie ryzykujemy
       //   działania na nieznanej licencji; ponowimy przy następnym uruchomieniu/odświeżeniu strony.
-      console.info(`[GLOFOX] Licencja niepotwierdzona (${reason || 'outage'}) — ponowię przy następnym odświeżeniu.`);
+      console.info(`[KLUB] Licencja niepotwierdzona (${reason || 'outage'}) — ponowię przy następnym odświeżeniu.`);
       return null;
     },
 
@@ -150,14 +150,14 @@
       if (!licensedLocationId) {
         // Nasz błąd konfiguracji (np. locationId='PENDING' nieuzupełniony) — nie strasz klienta;
         // serwer i tak widzi to jako 'misconfigured' w telemetrii.
-        console.info('[GLOFOX] Licencja bez przypisanego klubu (locationId) — pomijam po cichu.');
+        console.info('[KLUB] Licencja bez przypisanego klubu (locationId) — pomijam po cichu.');
         return null;
       }
 
       const sessionLocationId = await this._waitForLocationId(this.LOCATION_RETRY_MS);
       if (!sessionLocationId) {
         // Glofox jeszcze się nie załadował / brak JWT sesji — transient, nie problem licencyjny. Cicho.
-        console.info('[GLOFOX] Nie wykryto zalogowanego klubu Glofox — ponowię przy odświeżeniu.');
+        console.info('[KLUB] Nie wykryto zalogowanego klubu Glofox — ponowię przy odświeżeniu.');
         return null;
       }
       this.sessionLocationId = sessionLocationId;
@@ -359,9 +359,9 @@
         locationId: locationId || '',
         ts: new Date().toISOString()
       };
-      try { window.__GLOFOX_LICENSE__ = mark; } catch (_e) { /* noop */ }
+      try { window.__KLUB_LICENSE__ = mark; } catch (_e) { /* noop */ }
       try { GM_setValue(this.WATERMARK_KEY, JSON.stringify(mark)); } catch (_e) { /* noop */ }
-      console.info(`[GLOFOX] Licencja aktywna: ${mark.key} | ${mark.club} | ${mark.locationId}`);
+      console.info(`[KLUB] Licencja aktywna: ${mark.key} | ${mark.club} | ${mark.locationId}`);
     },
 
     // ---- Cicha notka (nie straszący modal) --------------------------------------
@@ -369,7 +369,7 @@
     // (zły klub / skrypt wyłączony / licencja nieaktywna). Transient i tryb łagodny → console.info,
     // bez UI. Świadomie NIE full-screen i NIE czerwony (decyzja: „nie strasz klientów").
     showBlockNotice(message) {
-      console.info(`[GLOFOX] ${message}`);
+      console.info(`[KLUB] ${message}`);
       try {
         if (document.getElementById('glofox-license-notice')) return;
         const el = document.createElement('div');
@@ -414,7 +414,7 @@
       const msg = expired
         ? 'Licencja wygasła.'
         : `Licencja wygasa za ${daysLeft} ${daysLeft === 1 ? 'dzień' : 'dni'}.`;
-      console.info(`[GLOFOX] ${msg} Odnów: ${this.RENEWAL_URL}`);
+      console.info(`[KLUB] ${msg} Odnów: ${this.RENEWAL_URL}`);
       try {
         const id = 'glofox-license-renewal';
         if (document.getElementById(id)) return;
@@ -451,7 +451,7 @@
   };
   // === LICENSE MODULE END ===
 
-  const L = (typeof GLOFOX_LICENSE !== 'undefined') ? GLOFOX_LICENSE : null;
+  const L = (typeof KLUB_LICENSE !== 'undefined') ? KLUB_LICENSE : null;
   if (!L) { console.error('[GLOFOX Setup] brak modułu licencji (build?)'); return; }
 
   const CLAIM_URL = `${L.LICENSE_SERVER}/api/claim`;
