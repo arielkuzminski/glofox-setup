@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Glofox Suite - Setup (Konfiguracja)
 // @namespace    glofox
-// @version      1.1
+// @version      1.2
 // @description  Kreator konfiguracji wtyczek Glofox Suite: aktywuje licencję dla Twojego klubu i ustawia klienta sprzedażowego oraz kaucję. Uruchom raz po zakupie; zostaje jako „Ustawienia wtyczek".
 // @match        https://app.glofox.com/*
 // @run-at       document-idle
@@ -488,18 +488,37 @@
   //     jeśli jest na stronie (te same selektory co autoklient), i liczy wyniki. Gdy pola brak —
   //     podpowiada, że test działa w widoku koszyka. NIE blokuje zapisu. -----------------------------
   const CLIENT_INPUT_SEL = '[data-testid="cart-client-search"] input, input[placeholder*="Wyszukaj klienta"], input[placeholder*="Search client"], input[placeholder*="Client"]';
-  const CLIENT_RESULT_SEL = '.searchResult, [data-testid^="client-"], [data-testid*="client-result"], [role="option"], li[data-testid^="search_result_"]';
+  // Superset selektorów wyników — MUSI być zgodny z autoklient (RESULT_ITEM_SELECTOR),
+  // bo to on jest sprawdzony w boju. Nie zawężaj go tutaj.
+  const CLIENT_RESULT_SEL = '.searchResult, [data-testid^="client-"], [data-testid*="client-result"], [data-testid^="search_result_"], [data-testid*="search-result"], li[data-testid^="search_result_"], .ant-list-item, [role="option"], [role="listitem"]';
   function setReactInputValue(input, value) {
     const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
     setter.call(input, value);
     input.dispatchEvent(new Event('input', { bubbles: true }));
   }
+  const normalizeText = (s) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+  function countClientMatches(query) {
+    const target = normalizeText(query);
+    const items = [...document.querySelectorAll(CLIENT_RESULT_SEL)];
+    if (!target) return items.length;
+    // Liczymy tylko karty, których tekst zawiera wpisaną nazwę — a jak Glofox już przefiltrował
+    // (żadna karta nie pasuje tekstowo, ale wyniki są), traktujemy surową liczbę jako fallback.
+    const matched = items.filter((el) => normalizeText(el.innerText).includes(target)).length;
+    return matched || items.length;
+  }
   async function testClientMatch(query) {
     const input = document.querySelector(CLIENT_INPUT_SEL);
     if (!input) return { ok: false, hint: 'Otwórz koszyk (widok wyboru klienta), aby przetestować dopasowanie.' };
     setReactInputValue(input, query);
-    await new Promise((r) => setTimeout(r, 1300));
-    const count = document.querySelectorAll(CLIENT_RESULT_SEL).length;
+    // Polling zamiast sztywnego czekania: wyniki Glofoxa pojawiają się asynchronicznie,
+    // więc pytamy do skutku aż do deadline'u zamiast zgadywać jeden opóźnienie.
+    const deadline = Date.now() + 4000;
+    let count = 0;
+    while (Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 200));
+      count = countClientMatches(query);
+      if (count > 0) break;
+    }
     return { ok: true, count };
   }
 
