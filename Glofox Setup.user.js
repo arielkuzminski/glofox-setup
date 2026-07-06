@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Klub - Setup (Konfiguracja)
 // @namespace    wotan91
-// @version      1.3
+// @version      1.4
 // @description  Kreator konfiguracji pakietu wtyczek: aktywuje licencję dla Twojego klubu i ustawia klienta sprzedażowego oraz kaucję. Uruchom raz po zakupie; zostaje jako „Ustawienia wtyczek".
 // @match        https://app.glofox.com/*
 // @run-at       document-idle
@@ -452,7 +452,11 @@
   // === LICENSE MODULE END ===
 
   const L = (typeof KLUB_LICENSE !== 'undefined') ? KLUB_LICENSE : null;
-  if (!L) { console.error('[GLOFOX Setup] brak modułu licencji (build?)'); return; }
+  if (!L) { console.error('[KLUB Setup] brak modułu licencji (build?)'); return; }
+
+  // Setup woła L.validate() bezpośrednio (nie przez enforce()), więc slug nie ustawia się sam —
+  // ustawiamy go tu ręcznie, inaczej telemetria/kill-switch widzą 'unknown' zamiast 'setup'.
+  L.scriptSlug = 'setup';
 
   const CLAIM_URL = `${L.LICENSE_SERVER}/api/claim`;
   const PENDING = 'PENDING';
@@ -672,7 +676,7 @@
     const result = await L.validate();
     if (!result || !result.valid) {
       if (userTriggered) { injectCssOnce(); openNoKey(); }
-      console.info('[GLOFOX Setup] licencja nieaktywna/niepotwierdzona — kreator wstrzymany.');
+      console.info('[KLUB Setup] licencja nieaktywna/niepotwierdzona — kreator wstrzymany.');
       return;
     }
     const config = result.config || {};
