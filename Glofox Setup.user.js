@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Klub - Setup (Konfiguracja)
 // @namespace    wotan91
-// @version      1.4
+// @version      1.5
 // @description  Kreator konfiguracji pakietu wtyczek: aktywuje licencję dla Twojego klubu i ustawia klienta sprzedażowego oraz kaucję. Uruchom raz po zakupie; zostaje jako „Ustawienia wtyczek".
 // @match        https://app.glofox.com/*
 // @run-at       document-idle
@@ -574,7 +574,7 @@
             : 'Zmień nazwę sklepu, klienta sprzedażowego lub kaucję. Zapis od razu obowiązuje.'}</p>
 
           <label>Nazwa sklepu / klubu</label>
-          <input id="gfxs-club" type="text" value="${(clubName || '').replace(/"/g, '&quot;')}" placeholder="np. Sigma Sklep Lębork">
+          <input id="gfxs-club" type="text" value="${(clubName || '').replace(/"/g, '&quot;')}" placeholder="np. Nazwa Twojego klubu">
 
           <label>ID lokalizacji (locationId)</label>
           <input id="gfxs-loc" type="text" value="${locValue.replace(/"/g, '&quot;')}" ${isPending ? '' : 'disabled'}>
