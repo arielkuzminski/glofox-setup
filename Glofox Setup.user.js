@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Klub - Setup (Konfiguracja)
 // @namespace    wotan91
-// @version      1.5
+// @version      1.6
 // @description  Kreator konfiguracji pakietu wtyczek: aktywuje licencję dla Twojego klubu i ustawia klienta sprzedażowego oraz kaucję. Uruchom raz po zakupie; zostaje jako „Ustawienia wtyczek".
 // @match        https://app.glofox.com/*
 // @run-at       document-idle
@@ -526,6 +526,21 @@
     return { ok: true, count };
   }
 
+  // --- Lista e-maili bez ograniczeń: czyta ją wtyczka Uprawnienia, pod tym samym kluczem w localStorage. -
+  const EXEMPT_STORAGE_KEY = 'klub:uprawnienia:exemptEmails';
+  function readExemptEmails() {
+    try {
+      const list = JSON.parse(window.localStorage.getItem(EXEMPT_STORAGE_KEY) || '[]');
+      return Array.isArray(list) ? list : [];
+    } catch (_e) {
+      return [];
+    }
+  }
+  function saveExemptEmails(text) {
+    const emails = text.split(/[\s,;]+/).map((v) => v.toLowerCase()).filter(Boolean);
+    window.localStorage.setItem(EXEMPT_STORAGE_KEY, JSON.stringify([...new Set(emails)]));
+  }
+
   // --- UI (scoped, prefiks gfxs-) -------------------------------------------------------------------
   const CSS = `
     #gfxs-fab{position:fixed;right:18px;bottom:18px;z-index:2147483000;background:#6c5ce7;color:#fff;
@@ -539,8 +554,9 @@
     #gfxs-modal h2{margin:0 0 4px;font-size:19px}
     #gfxs-modal .sub{color:#666;font-size:13px;margin:0 0 18px}
     #gfxs-modal label{display:block;font-weight:600;font-size:13px;margin:14px 0 5px}
-    #gfxs-modal input{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #d9d9e6;
+    #gfxs-modal input,#gfxs-modal textarea{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #d9d9e6;
       border-radius:8px;font-size:14px}
+    #gfxs-modal textarea{display:block;resize:vertical;font-family:inherit;line-height:1.4}
     #gfxs-modal input:disabled{background:#f3f3f8;color:#888}
     #gfxs-modal .hint{font-size:12px;color:#888;margin:4px 0 0}
     #gfxs-row{display:flex;gap:8px;margin-top:8px}
@@ -552,7 +568,7 @@
     #gfxs-msg.ok{display:block;background:#e8f8ef;color:#1a7f4b}
     #gfxs-msg.err{display:block;background:#fdecec;color:#c0392b}
     @media (prefers-color-scheme: dark){
-      #gfxs-modal{background:#25232f;color:#eee}#gfxs-modal input{background:#1e1c28;border-color:#3a3850;color:#eee}
+      #gfxs-modal{background:#25232f;color:#eee}#gfxs-modal input,#gfxs-modal textarea{background:#1e1c28;border-color:#3a3850;color:#eee}
       #gfxs-modal input:disabled{background:#2a2836}#gfxs-test{background:#3a3850;color:#eee}
       #gfxs-modal .sub,#gfxs-modal .hint{color:#a8a6b8}
     }`;
@@ -593,6 +609,10 @@
           <p class="hint">Opcjonalnie ID produktu kaucji, jeśli je znasz:</p>
           <input id="gfxs-depositId" type="text" value="${(cfg.depositProductId || '').replace(/"/g, '&quot;')}" placeholder="(opcjonalne) ID produktu">
 
+          <label for="gfxs-exempt">Osoby bez ograniczeń (wtyczka Uprawnienia)</label>
+          <textarea id="gfxs-exempt" rows="3" spellcheck="false" placeholder="np. wlasciciel@klub.pl"></textarea>
+          <p class="hint">Jeden e-mail w linii, ten sam, którym dana osoba loguje się do Glofoxa. Lista działa w tej przeglądarce.</p>
+
           <div id="gfxs-msg"></div>
           <div id="gfxs-row">
             <button class="act" id="gfxs-save" type="button">${isPending ? 'Aktywuj i zapisz' : 'Zapisz zmiany'}</button>
@@ -606,6 +626,7 @@
     const msg = $('#gfxs-msg');
     const setMsg = (text, kind) => { msg.className = kind || ''; msg.textContent = text; };
     $('#gfxs-close').onclick = () => overlay.remove();
+    $('#gfxs-exempt').value = readExemptEmails().join('\n');
 
     $('#gfxs-test').onclick = async () => {
       const q = $('#gfxs-client').value.trim();
@@ -623,6 +644,7 @@
       const depositVal = $('#gfxs-deposit').value.trim();
       const depositIdVal = $('#gfxs-depositId').value.trim();
       if (isPending && !locVal) return setMsg('Brak ID lokalizacji — zaloguj się do swojego klubu w Glofox.', 'err');
+      saveExemptEmails($('#gfxs-exempt').value);
 
       const payload = {
         key: KEY,
