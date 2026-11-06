@@ -628,7 +628,7 @@
       return { root: shadow, el: dialog, body, close };
     }
 
-    function confirm({ title, summary = [], warning, confirmLabel, cancelLabel = 'Anuluj', tone = 'primary' }) {
+    function confirm({ title, summary = [], note, warning, confirmLabel, cancelLabel = 'Anuluj', tone = 'primary' }) {
       return new Promise((resolve) => {
         let result = false;
         const rows = summary.map(([label, value]) => `<dt>${esc(label)}</dt><dd>${esc(value)}</dd>`).join('');
@@ -636,7 +636,7 @@
           size: 'sm',
           title,
           closeButton: false,
-          bodyHtml: `<div class="klub-confirm">${rows ? `<dl class="klub-confirm__summary">${rows}</dl>` : ''}${warning ? `<div class="klub-notice klub-notice--warning" role="alert">${icon('alert')}<span>${esc(warning)}</span></div>` : ''}</div>`,
+          bodyHtml: `<div class="klub-confirm">${rows ? `<dl class="klub-confirm__summary">${rows}</dl>` : ''}${note ? `<div class="klub-notice klub-notice--info">${icon('info')}<span>${esc(note)}</span></div>` : ''}${warning ? `<div class="klub-notice klub-notice--warning" role="alert">${icon('alert')}<span>${esc(warning)}</span></div>` : ''}</div>`,
           footHtml: `<button class="klub-btn" type="button" data-klub-cancel>${esc(cancelLabel)}</button><button class="klub-btn klub-btn--${tone === 'danger' ? 'danger' : 'primary'}" type="button" data-klub-ok>${esc(confirmLabel)}</button>`,
           focus: tone === 'danger' ? '[data-klub-cancel]' : '[data-klub-ok]',
           onClose: () => resolve(result),
