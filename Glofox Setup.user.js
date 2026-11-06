@@ -451,6 +451,235 @@
   };
   // === LICENSE MODULE END ===
 
+  // === KLUB UI START ===
+  const KLUB_UI = (function (CSS) {
+    'use strict';
+
+    const HOST = 'data-klub-ui-modal';
+    const CLOSING = 'data-klub-ui-closing';
+    const TOAST = 'data-klub-ui-toast';
+    const BELOW_PROFILE = 'data-klub-ui-below-profile';
+    const STYLE = 'data-klub-ui';
+    const CLOSE_FALLBACK_MS = 200;
+    const ENTER_MS = 320;
+    const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+
+    const ICONS = {
+      close: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+      check: '<polyline points="20 6 9 17 4 12"/>',
+      'chevron-down': '<polyline points="6 9 12 15 18 9"/>',
+      'chevron-up': '<polyline points="18 15 12 9 6 15"/>',
+      'chevron-left': '<polyline points="15 18 9 12 15 6"/>',
+      'chevron-right': '<polyline points="9 18 15 12 9 6"/>',
+      'chevrons-left': '<polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/>',
+      'chevrons-right': '<polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/>',
+      alert: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+      info: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
+      calendar: '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+      search: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+      refresh: '<polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>',
+      tag: '<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>',
+      phone: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>',
+      pause: '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>',
+      download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+      upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
+      'trending-up': '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',
+      sliders: '<line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>',
+      pin: '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
+    };
+
+    const ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+    const esc = (value) => String(value == null ? '' : value).replace(/[&<>"']/g, (c) => ESCAPES[c]);
+
+    const icon = (name) => (ICONS[name] ? `<svg class="klub-ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>` : '');
+
+    // Skrót stylów odróżnia wersje modułu: wtyczki aktualizują się osobno, więc na jednej stronie mogą być dwie.
+    const styleVersion = (() => {
+      let hash = 5381;
+      for (let i = 0; i < CSS.length; i += 1) hash = (hash * 33 + CSS.charCodeAt(i)) % 2147483647;
+      return String(hash);
+    })();
+
+    function ensureStyles(root = document) {
+      const scope = root.nodeType === 9 ? root.head : root;
+      if (scope.querySelector(`style[${STYLE}="${styleVersion}"]`)) return;
+      const style = document.createElement('style');
+      style.setAttribute(STYLE, styleVersion);
+      style.textContent = CSS;
+      scope.appendChild(style);
+    }
+
+    // Każda wtyczka ma własną kopię modułu, dlatego stan wspólny (stos modali, przewijanie) trzymamy w DOM.
+    const openHosts = () => document.querySelectorAll(`[${HOST}]`);
+
+    function topHost() {
+      const hosts = document.querySelectorAll(`[${HOST}]:not([${CLOSING}])`);
+      return hosts[hosts.length - 1] || null;
+    }
+
+    function lockScroll() {
+      if (!openHosts().length) document.documentElement.dataset.klubUiOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+    }
+
+    function unlockScroll() {
+      if (openHosts().length) return;
+      const root = document.documentElement;
+      document.body.style.overflow = root.dataset.klubUiOverflow || '';
+      delete root.dataset.klubUiOverflow;
+    }
+
+    function deepActiveElement() {
+      let active = document.activeElement;
+      while (active && active.shadowRoot && active.shadowRoot.activeElement) active = active.shadowRoot.activeElement;
+      return active;
+    }
+
+    function createHost(attribute) {
+      const host = document.createElement('div');
+      host.setAttribute(attribute, '');
+      const shadow = host.attachShadow({ mode: 'open' });
+      ensureStyles(shadow);
+      const wrapper = document.createElement('div');
+      wrapper.className = 'klub-root';
+      shadow.appendChild(wrapper);
+      return { host, shadow, wrapper };
+    }
+
+    // Usuwa po animacji albo po czasie, jeśli zdarzenie nie przyjdzie (np. zakładka w tle).
+    function removeAfterClosing(el, done) {
+      let finished = false;
+      const finish = () => {
+        if (finished) return;
+        finished = true;
+        done();
+      };
+      el.addEventListener('animationend', (e) => { if (e.target === el) finish(); });
+      setTimeout(finish, CLOSE_FALLBACK_MS);
+      el.classList.remove('is-entering');
+      el.classList.add('is-closing');
+    }
+
+    function modal({ size = 'md', title, sub, bodyHtml = '', footHtml, belowProfile = false, dismissOnBackdrop = false, onClose, closeButton = true, focus } = {}) {
+      const opener = deepActiveElement();
+      lockScroll();
+      const { host, shadow, wrapper } = createHost(HOST);
+      if (belowProfile) host.setAttribute(BELOW_PROFILE, '');
+      const sizeClass = size === 'sm' ? ' klub-modal--sm' : size === 'full' ? ' klub-modal--full' : '';
+      wrapper.innerHTML = `<div class="klub-overlay is-entering${belowProfile ? ' klub-overlay--below-profile' : ''}">
+        <div class="klub-modal${sizeClass}" role="dialog" aria-modal="true" aria-labelledby="klub-ui-title" tabindex="-1">
+          <div class="klub-modal__head">
+            <div><h2 class="klub-modal__title" id="klub-ui-title">${esc(title)}</h2>${sub ? `<p class="klub-modal__sub">${esc(sub)}</p>` : ''}</div>
+            ${closeButton ? `<button class="klub-btn klub-btn--ghost klub-btn--icon" type="button" data-klub-close aria-label="Zamknij">${icon('close')}</button>` : ''}
+          </div>
+          <div class="klub-modal__body">${bodyHtml}</div>
+          ${footHtml ? `<div class="klub-modal__foot">${footHtml}</div>` : ''}
+        </div>
+      </div>`;
+      document.body.appendChild(host);
+      const overlay = wrapper.querySelector('.klub-overlay');
+      const dialog = wrapper.querySelector('[role=dialog]');
+      const body = wrapper.querySelector('.klub-modal__body');
+      setTimeout(() => overlay.classList.remove('is-entering'), ENTER_MS);
+
+      let closing = null;
+      const onEscape = (e) => {
+        if (e.key !== 'Escape' || topHost() !== host) return;
+        e.stopPropagation();
+        e.preventDefault();
+        close('esc');
+      };
+      function close(reason = 'api') {
+        if (closing) return closing;
+        host.setAttribute(CLOSING, '');
+        window.removeEventListener('keydown', onEscape, true);
+        closing = new Promise((resolve) => {
+          removeAfterClosing(overlay, () => {
+            host.remove();
+            unlockScroll();
+            if (opener && opener.isConnected && opener.focus) opener.focus();
+            try {
+              if (onClose) onClose(reason);
+            } finally {
+              resolve();
+            }
+          });
+        });
+        return closing;
+      }
+
+      window.addEventListener('keydown', onEscape, true);
+      shadow.addEventListener('keydown', (e) => {
+        if (e.key !== 'Tab') return;
+        const items = dialog.querySelectorAll(FOCUSABLE);
+        if (!items.length) { e.preventDefault(); return; }
+        const first = items[0];
+        const last = items[items.length - 1];
+        const active = shadow.activeElement;
+        if (e.shiftKey && (active === first || active === dialog)) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && active === last) { e.preventDefault(); first.focus(); }
+      });
+      overlay.addEventListener('click', (e) => { if (dismissOnBackdrop && e.target === overlay) close('backdrop'); });
+      const closer = wrapper.querySelector('[data-klub-close]');
+      if (closer) closer.addEventListener('click', () => close('button'));
+
+      const start = (focus && dialog.querySelector(focus)) || body.querySelector(FOCUSABLE) || dialog.querySelector(`.klub-modal__foot ${FOCUSABLE}`) || dialog;
+      start.focus();
+      return { root: shadow, el: dialog, body, close };
+    }
+
+    function confirm({ title, summary = [], warning, confirmLabel, cancelLabel = 'Anuluj', tone = 'primary' }) {
+      return new Promise((resolve) => {
+        let result = false;
+        const rows = summary.map(([label, value]) => `<dt>${esc(label)}</dt><dd>${esc(value)}</dd>`).join('');
+        const dialog = modal({
+          size: 'sm',
+          title,
+          closeButton: false,
+          bodyHtml: `<div class="klub-confirm">${rows ? `<dl class="klub-confirm__summary">${rows}</dl>` : ''}${warning ? `<div class="klub-notice klub-notice--warning" role="alert">${icon('alert')}<span>${esc(warning)}</span></div>` : ''}</div>`,
+          footHtml: `<button class="klub-btn" type="button" data-klub-cancel>${esc(cancelLabel)}</button><button class="klub-btn klub-btn--${tone === 'danger' ? 'danger' : 'primary'}" type="button" data-klub-ok>${esc(confirmLabel)}</button>`,
+          focus: tone === 'danger' ? '[data-klub-cancel]' : '[data-klub-ok]',
+          onClose: () => resolve(result),
+        });
+        dialog.root.querySelector('[data-klub-cancel]').addEventListener('click', () => dialog.close('button'));
+        dialog.root.querySelector('[data-klub-ok]').addEventListener('click', () => {
+          result = true;
+          dialog.close('button');
+        });
+      });
+    }
+
+    function toast(message, { duration = 4000, actionLabel, onAction } = {}) {
+      document.querySelectorAll(`[${TOAST}]`).forEach((old) => old.remove());
+      const { host, wrapper } = createHost(TOAST);
+      wrapper.innerHTML = `<div class="klub-toast" role="status"><span>${esc(message)}</span>${actionLabel ? `<button class="klub-toast__action" type="button">${esc(actionLabel)}</button>` : ''}</div>`;
+      document.body.appendChild(host);
+      const el = wrapper.querySelector('.klub-toast');
+      const action = wrapper.querySelector('.klub-toast__action');
+      if (action) {
+        action.addEventListener('click', () => {
+          if (onAction) onAction();
+          host.remove();
+        });
+      }
+      setTimeout(() => {
+        if (host.isConnected) removeAfterClosing(el, () => host.remove());
+      }, duration);
+    }
+
+    function replayClass(el, name, ms) {
+      el.classList.remove(name);
+      void el.offsetWidth;
+      el.classList.add(name);
+      setTimeout(() => el.classList.remove(name), ms);
+    }
+    const enterRows = (table) => replayClass(table, 'klub-table--enter', 520);
+    const pop = (tag) => replayClass(tag, 'klub-tag--pop', 300);
+
+    return { css: CSS, ensureStyles, modal, confirm, toast, icon, esc, enterRows, pop };
+  })(":host, .klub-root {\n  --surface: #ffffff;\n  --surface-2: #fbfbff;\n  --surface-hover: #f4f6ff;\n  --paper: oklch(0.968 0.004 264);\n  --surface-inverse: oklch(0.275 0.028 280);\n  --ink: #222245;\n  --ink-2: #40466f;\n  --muted: oklch(0.53 0.028 278);\n  --on-inverse: #ffffff;\n  --on-inverse-muted: #c9cbe0;\n  --rule: #ececf6;\n  --border-control: oklch(0.62 0.02 278);\n  --accent: #5f63e9;\n  --accent-strong: #4b46c1;\n  --on-accent: #ffffff;\n  --accent-wash: #eef1ff;\n  --accent-wash-ink: #444bb5;\n  --success: #1e7d3f;\n  --on-success: #ffffff;\n  --success-wash: #e3f6e9;\n  --danger: #b4233f;\n  --on-danger: #ffffff;\n  --danger-wash: #ffe6ea;\n  --warning: #8a5200;\n  --warning-wash: #fff4df;\n  --neutral-ink: #4a4f6b;\n  --neutral-wash: #eceef5;\n  --focus: var(--accent-strong);\n  --backdrop: rgba(10, 14, 28, 0.45);\n  --shadow-modal: 0 10px 30px rgba(0, 0, 0, 0.25);\n  --shadow-popover: 0 12px 28px rgba(0, 0, 0, 0.18);\n  --shadow-launcher: 0 6px 20px rgba(95, 99, 233, 0.4);\n  --space-3xs: 4px;\n  --space-2xs: 8px;\n  --space-xs: 12px;\n  --space-sm: 16px;\n  --space-md: 24px;\n  --space-lg: 32px;\n  --radius-sm: 8px;\n  --radius-pill: 999px;\n  --control-sm: 28px;\n  --control-md: 32px;\n  --control-lg: 36px;\n  --cell-x: 10px;\n  --cell-y: 9px;\n  --row-y: 10px;\n  --bar-y: 6px;\n  --field-gap: 2px;\n  --modal-sm: 520px;\n  --modal-md: 760px;\n  --modal-full: 1500px;\n  --z-below-profile: 104;\n  --z-dialog: 1100;\n  --z-nested: 1200;\n  --z-popover: 1300;\n  --z-toast: 2000;\n  --font-ui: \"Nunito Sans\", system-ui, -apple-system, \"Segoe UI\", sans-serif;\n  --font-mono: \"JetBrains Mono\", ui-monospace, Menlo, monospace;\n}\n/* Klub: komponenty modali i tabel. Wszystkie wartości pochodzą z tokenów. */\n\n.klub-root, .klub-root *, .klub-root *::before, .klub-root *::after { box-sizing: border-box; }\n.klub-root { font-family: var(--font-ui); font-size: 13px; line-height: 18px; color: var(--ink); }\n.klub-root :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }\n.klub-root svg.klub-ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }\n\n/* Gospodarz Shadow DOM wyznacza warstwę względem aplikacji. */\n:host { position: fixed; top: 0; left: 0; width: 0; height: 0; z-index: var(--z-dialog); }\n:host([data-klub-ui-below-profile]) { z-index: var(--z-below-profile); }\n:host([data-klub-ui-toast]) { z-index: var(--z-toast); }\n\n/* Button */\n.klub-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: var(--control-md); padding: 0 var(--space-xs); border: 1px solid var(--border-control); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; font-weight: 600; white-space: nowrap; cursor: pointer; }\n.klub-btn:hover { background: var(--accent-wash); }\n.klub-btn:disabled { opacity: .55; cursor: not-allowed; }\n.klub-btn--primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }\n.klub-btn--primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }\n.klub-btn--danger { background: var(--danger); border-color: var(--danger); color: var(--on-danger); }\n.klub-btn--danger:hover { background: var(--danger); filter: brightness(.92); }\n.klub-btn--success { background: var(--success); border-color: var(--success); color: var(--on-success); }\n.klub-btn--success:hover { background: var(--success); filter: brightness(.92); }\n.klub-btn--ghost { background: transparent; border-color: transparent; color: var(--ink-2); }\n.klub-btn--icon { width: var(--control-md); padding: 0; }\n.klub-btn--sm { min-height: var(--control-sm); font-size: 12px; padding: 0 var(--space-2xs); }\n.klub-btn--sm.klub-btn--icon { width: var(--control-sm); padding: 0; }\n\n/* Modal */\n.klub-overlay { position: fixed; inset: 0; z-index: var(--z-dialog); display: flex; align-items: center; justify-content: center; padding: var(--space-md); background: var(--backdrop); }\n.klub-overlay--nested { z-index: var(--z-nested); }\n.klub-overlay--below-profile { z-index: var(--z-below-profile); }\n.klub-modal { display: flex; flex-direction: column; width: var(--modal-md); max-width: 100%; max-height: calc(100vh - 2 * var(--space-md)); overflow: hidden; background: var(--surface); border-radius: var(--radius-sm); box-shadow: var(--shadow-modal); color: var(--ink); }\n.klub-modal--sm { width: var(--modal-sm); }\n.klub-modal--full { width: var(--modal-full); height: calc(100vh - 2 * var(--space-md)); }\n.klub-modal__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-xs); padding: var(--row-y) var(--space-sm); border-bottom: 1px solid var(--rule); }\n.klub-modal__title { margin: 0; font-size: 16px; line-height: 22px; font-weight: 700; color: var(--ink); }\n.klub-modal__sub { margin: 0; font-size: 12px; line-height: 16px; color: var(--muted); }\n.klub-modal__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2xs); }\n.klub-modal__body { flex: 1; min-height: 0; overflow: auto; padding: var(--space-xs) var(--space-sm); }\n.klub-modal__body--flush { padding: 0; display: flex; flex-direction: column; }\n.klub-modal__foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--space-2xs); padding: var(--row-y) var(--space-sm); border-top: 1px solid var(--rule); background: var(--surface-2); }\n.klub-modal__foot--between { justify-content: space-between; }\n.klub-modal__foot--pages { padding: var(--space-2xs) var(--space-sm); font-size: 12px; color: var(--ink-2); }\n\n/* ConfirmDialog */\n.klub-confirm { display: flex; flex-direction: column; gap: var(--row-y); }\n.klub-confirm__summary dd { min-width: 0; overflow-wrap: anywhere; white-space: pre-wrap; }\n.klub-confirm__summary { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: var(--field-gap) var(--space-xs); }\n.klub-confirm__summary dt { color: var(--muted); }\n.klub-confirm__summary dd { margin: 0; color: var(--ink); font-weight: 600; }\n\n/* Table */\n.klub-table-wrap { flex: 1; min-height: 0; overflow: auto; }\n.klub-table { width: 100%; border-collapse: collapse; font-size: 12px; line-height: 16px; }\n.klub-table th, .klub-table td { padding: var(--cell-y) var(--cell-x); border-bottom: 1px solid var(--rule); text-align: left; vertical-align: middle; white-space: nowrap; }\n.klub-table th { position: sticky; top: 0; z-index: 1; background: var(--surface-2); color: var(--ink-2); font-weight: 700; }\n.klub-table tbody tr:hover td { background: var(--surface-hover); }\n.klub-table tr.is-selected td { background: var(--accent-wash); }\n.klub-table__sort { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }\n.klub-table__sort svg.klub-ic { width: 12px; height: 12px; }\n.klub-table__check { width: 32px; }\n.klub-table__check input { display: block; margin: 0; width: 16px; height: 16px; accent-color: var(--accent); }\n.klub-table__num { text-align: right; font-variant-numeric: tabular-nums; }\n.klub-table__link { padding: 0; border: 0; background: none; color: var(--accent-strong); font: inherit; cursor: pointer; }\n.klub-table__link:hover { text-decoration: underline; }\n.klub-table__expand td { background: var(--surface-2); color: var(--ink-2); white-space: normal; }\n.klub-table__empty { padding: var(--space-lg); text-align: center; color: var(--muted); }\n\n/* Pagination */\n.klub-pages { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }\n.klub-pages__range { margin-right: auto; font-size: 12px; color: var(--ink-2); }\n.klub-page { display: inline-flex; align-items: center; justify-content: center; min-width: var(--control-sm); height: var(--control-sm); padding: 0 6px; border: 1px solid var(--border-control); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }\n.klub-page:hover { background: var(--accent-wash); }\n.klub-page:disabled { opacity: .55; cursor: not-allowed; }\n.klub-page[aria-current=\"page\"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }\n\n/* Field */\n.klub-field { display: flex; flex-direction: column; gap: var(--field-gap); min-width: 0; }\n.klub-field__label { font-size: 12px; line-height: 16px; font-weight: 600; color: var(--ink-2); }\n.klub-input { width: 100%; min-height: var(--control-md); padding: 5px var(--space-2xs); border: 1px solid var(--border-control); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; }\n.klub-input::placeholder { color: var(--muted); }\ntextarea.klub-input { min-height: 88px; resize: vertical; }\n.klub-input:disabled { background: var(--paper); color: var(--muted); cursor: not-allowed; }\n.klub-input[readonly] { background: var(--surface-2); border-color: var(--rule); color: var(--ink-2); }\n.klub-field.is-invalid .klub-input { border-color: var(--danger); }\n.klub-field__hint { font-size: 12px; line-height: 16px; color: var(--muted); }\n.klub-field__error { display: flex; align-items: center; gap: 4px; font-size: 12px; line-height: 16px; color: var(--danger); }\n.klub-field__error svg.klub-ic { width: 14px; height: 14px; }\n.klub-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: var(--row-y) var(--space-xs); }\n.klub-form__full { grid-column: 1 / -1; }\n\n/* FilterPanel */\n.klub-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr)); gap: var(--space-2xs); padding: var(--space-2xs) var(--space-sm); border-bottom: 1px solid var(--rule); }\n.klub-filters .klub-field__label { font-size: 11px; line-height: 14px; }\n.klub-filters .klub-input { font-size: 12px; }\n.klub-filters__actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2xs); padding: var(--bar-y) var(--space-sm); border-bottom: 1px solid var(--rule); }\n.klub-filters__group { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2xs); }\n.klub-filters__selection { font-size: 12px; font-weight: 700; color: var(--ink-2); }\n\n/* Tag */\n.klub-tag { display: inline-block; padding: 3px var(--space-2xs); border-radius: var(--radius-pill); font-size: 11px; line-height: 14px; font-weight: 700; white-space: nowrap; }\n.klub-tag--accent { background: var(--accent-wash); color: var(--accent-wash-ink); }\n.klub-tag--warning { background: var(--warning-wash); color: var(--warning); }\n.klub-tag--danger { background: var(--danger-wash); color: var(--danger); }\n.klub-tag--success { background: var(--success-wash); color: var(--success); }\n.klub-tag--neutral { background: var(--neutral-wash); color: var(--neutral-ink); }\n\n/* FilterChip */\n.klub-chips { display: flex; flex-wrap: wrap; gap: 6px; }\n.klub-chip { display: inline-flex; align-items: center; gap: 6px; min-height: var(--control-md); padding: 0 var(--space-xs); border: 1px solid var(--border-control); border-radius: var(--radius-pill); background: var(--surface); color: var(--ink-2); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }\n.klub-chip:hover { background: var(--accent-wash); }\n.klub-chip[aria-pressed=\"true\"] { background: var(--accent-strong); border-color: var(--accent-strong); color: var(--on-accent); }\n.klub-chip__count { font-weight: 600; font-variant-numeric: tabular-nums; }\n\n/* Menu */\n.klub-menu-wrap { position: relative; display: inline-block; }\n.klub-menu { position: absolute; top: calc(100% + 4px); right: 0; z-index: var(--z-popover); display: flex; flex-direction: column; min-width: 220px; padding: var(--space-3xs); border: 1px solid var(--rule); border-radius: var(--radius-sm); background: var(--surface); box-shadow: var(--shadow-popover); }\n.klub-menu__item { display: flex; align-items: center; gap: var(--space-2xs); width: 100%; min-height: var(--control-md); padding: 0 var(--space-2xs); border: 0; border-radius: 6px; background: none; color: var(--ink); font: inherit; font-size: 12px; font-weight: 600; text-align: left; cursor: pointer; }\n.klub-menu__item:hover:not(:disabled) { background: var(--accent-wash); }\n.klub-menu__item:disabled { color: var(--muted); cursor: not-allowed; }\n.klub-menu__note { padding: var(--space-3xs) var(--space-2xs); font-size: 11px; line-height: 14px; color: var(--muted); }\n\n/* DatePicker */\n.klub-cal { width: 264px; padding: var(--space-2xs); border: 1px solid var(--rule); border-radius: var(--radius-sm); background: var(--surface); box-shadow: var(--shadow-popover); z-index: var(--z-popover); }\n.klub-cal__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2xs); margin-bottom: var(--space-2xs); }\n.klub-cal__title { font-size: 13px; font-weight: 700; color: var(--ink); }\n.klub-cal__table { width: 100%; border-collapse: collapse; }\n.klub-cal__table th { height: 28px; font-size: 11px; font-weight: 700; color: var(--ink-2); text-align: center; }\n.klub-cal__table td { padding: 1px; text-align: center; }\n.klub-cal__day { width: 100%; height: 30px; border: 0; border-radius: 6px; background: none; color: var(--ink); font: inherit; font-size: 12px; font-variant-numeric: tabular-nums; cursor: pointer; }\n.klub-cal__day:hover { background: var(--accent-wash); }\n.klub-cal__day.is-today { box-shadow: inset 0 0 0 1px var(--accent-strong); }\n.klub-cal__day.is-selected { background: var(--accent); color: var(--on-accent); }\n.klub-cal__foot { display: flex; justify-content: space-between; gap: var(--space-2xs); margin-top: var(--space-2xs); }\n\n/* Notice */\n.klub-notice { display: flex; align-items: flex-start; gap: var(--space-2xs); padding: var(--space-2xs) var(--space-xs); border-radius: var(--radius-sm); font-size: 13px; line-height: 18px; }\n.klub-notice svg.klub-ic { margin-top: 1px; }\n.klub-notice--info { background: var(--accent-wash); color: var(--accent-wash-ink); }\n.klub-notice--success { background: var(--success-wash); color: var(--success); }\n.klub-notice--warning { background: var(--warning-wash); color: var(--warning); }\n.klub-notice--danger { background: var(--danger-wash); color: var(--danger); }\n\n/* Toast */\n.klub-toast { position: fixed; right: 18px; bottom: 18px; z-index: var(--z-toast); display: flex; align-items: flex-start; gap: var(--space-2xs); max-width: 320px; padding: 10px var(--space-xs); border-radius: var(--radius-sm); background: var(--surface-inverse); color: var(--on-inverse); box-shadow: var(--shadow-popover); font-size: 13px; line-height: 18px; }\n.klub-toast--static { position: static; }\n.klub-toast__action { margin-left: var(--space-2xs); padding: 0; border: 0; background: none; color: var(--on-inverse); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }\n\n/* Progress */\n.klub-progress { display: flex; flex-direction: column; gap: 6px; }\n.klub-progress__row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-xs); font-size: 12px; color: var(--ink-2); }\n.klub-progress__track { height: 8px; overflow: hidden; border-radius: var(--radius-pill); background: var(--neutral-wash); }\n.klub-progress__fill { display: block; height: 100%; border-radius: var(--radius-pill); background: var(--accent); }\n.klub-log { max-height: 140px; margin: 0; overflow: auto; padding: var(--space-2xs); border-radius: var(--radius-sm); background: var(--surface-inverse); color: var(--on-inverse-muted); font-family: var(--font-mono); font-size: 11px; line-height: 16px; white-space: pre-wrap; }\n\n/* LauncherButton */\n.klub-launcher { position: fixed; right: 18px; bottom: 18px; z-index: calc(var(--z-dialog) - 1); display: inline-flex; align-items: center; gap: var(--space-2xs); min-height: var(--control-lg); padding: 0 var(--space-sm); border: 0; border-radius: var(--radius-pill); background: var(--accent); color: var(--on-accent); box-shadow: var(--shadow-launcher); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }\n.klub-launcher:hover { background: var(--accent-strong); }\n.klub-launcher--static { position: static; }\n\n/* Ruch. Krótko i miękko: animujemy transform i opacity. Wejście włącza klasa .is-entering, dodana raz przy otwarciu. */\n.klub-root { --klub-ease: cubic-bezier(0.16, 1, 0.3, 1); --klub-fast: 120ms; --klub-mid: 180ms; --klub-slow: 260ms; }\n\n@keyframes klub-fade { from { opacity: 0; } to { opacity: 1; } }\n@keyframes klub-fade-out { from { opacity: 1; } to { opacity: 0; } }\n@keyframes klub-rise { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }\n@keyframes klub-fall { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(6px) scale(.99); } }\n@keyframes klub-drop { from { opacity: 0; transform: translateY(-4px) scale(.98); } to { opacity: 1; transform: none; } }\n@keyframes klub-toast-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }\n@keyframes klub-row-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }\n@keyframes klub-pop { 0% { transform: scale(1); } 40% { transform: scale(1.14); } 100% { transform: scale(1); } }\n@keyframes klub-spin { to { transform: rotate(360deg); } }\n\n.klub-btn, .klub-page, .klub-chip, .klub-menu__item, .klub-launcher, .klub-cal__day { transition: background-color var(--klub-fast) ease, border-color var(--klub-fast) ease, color var(--klub-fast) ease, box-shadow var(--klub-fast) ease, transform var(--klub-fast) ease; }\n.klub-table td { transition: background-color var(--klub-fast) ease; }\n.klub-input { transition: border-color var(--klub-fast) ease; }\n.klub-btn:hover:not(:disabled), .klub-page:hover:not(:disabled):not([aria-current=\"page\"]) { transform: translateY(-1px); }\n.klub-btn--primary:hover:not(:disabled) { box-shadow: var(--shadow-launcher); }\n.klub-btn:active:not(:disabled), .klub-page:active:not(:disabled), .klub-chip:active, .klub-launcher:active { transform: scale(.97); }\n.klub-launcher:hover { transform: translateY(-2px); }\n.klub-progress__fill { transition: width var(--klub-slow) var(--klub-ease); }\n\n.klub-overlay.is-entering { animation: klub-fade var(--klub-mid) ease both; }\n.klub-overlay.is-entering .klub-modal { animation: klub-rise var(--klub-slow) var(--klub-ease) both; }\n.klub-overlay.is-closing { animation: klub-fade-out var(--klub-fast) ease both; }\n.klub-overlay.is-closing .klub-modal { animation: klub-fall var(--klub-fast) ease both; }\n.klub-menu.is-entering, .klub-cal.is-entering, .klub-notice.is-entering, .klub-field__error.is-entering { animation: klub-drop var(--klub-mid) var(--klub-ease) both; }\n.klub-toast { animation: klub-toast-in var(--klub-slow) var(--klub-ease) both; }\n.klub-toast--static { animation: none; }\n.klub-toast.is-closing { animation: klub-fade-out var(--klub-fast) ease both; }\n.klub-table--enter tbody tr { animation: klub-row-in var(--klub-mid) var(--klub-ease) both; animation-delay: 240ms; }\n.klub-table--enter tbody tr:nth-child(1) { animation-delay: 0ms; }\n.klub-table--enter tbody tr:nth-child(2) { animation-delay: 20ms; }\n.klub-table--enter tbody tr:nth-child(3) { animation-delay: 40ms; }\n.klub-table--enter tbody tr:nth-child(4) { animation-delay: 60ms; }\n.klub-table--enter tbody tr:nth-child(5) { animation-delay: 80ms; }\n.klub-table--enter tbody tr:nth-child(6) { animation-delay: 100ms; }\n.klub-table--enter tbody tr:nth-child(7) { animation-delay: 120ms; }\n.klub-table--enter tbody tr:nth-child(8) { animation-delay: 140ms; }\n.klub-table--enter tbody tr:nth-child(9) { animation-delay: 160ms; }\n.klub-table--enter tbody tr:nth-child(10) { animation-delay: 180ms; }\n.klub-table--enter tbody tr:nth-child(11) { animation-delay: 200ms; }\n.klub-table--enter tbody tr:nth-child(12) { animation-delay: 220ms; }\n.klub-tag--pop { animation: klub-pop var(--klub-slow) var(--klub-ease); }\n.klub-btn.is-busy svg.klub-ic { animation: klub-spin 800ms linear infinite; }\n\n@media (prefers-reduced-motion: reduce) {\n  .klub-root, .klub-root * { transition-duration: 1ms !important; transform: none !important; }\n  .klub-overlay.is-entering, .klub-overlay.is-entering .klub-modal, .klub-menu.is-entering, .klub-cal.is-entering, .klub-notice.is-entering, .klub-field__error.is-entering, .klub-toast { animation: klub-fade 120ms ease both !important; }\n  .klub-table--enter tbody tr, .klub-tag--pop, .klub-btn.is-busy svg.klub-ic { animation: none !important; }\n}\n\n.klub-root { font-family: inherit; }\n");
+  // === KLUB UI END ===
+
   const L = (typeof KLUB_LICENSE !== 'undefined') ? KLUB_LICENSE : null;
   if (!L) { console.error('[KLUB Setup] brak modułu licencji (build?)'); return; }
 
@@ -541,100 +770,68 @@
     window.localStorage.setItem(EXEMPT_STORAGE_KEY, JSON.stringify([...new Set(emails)]));
   }
 
-  // --- UI (scoped, prefiks gfxs-) -------------------------------------------------------------------
-  const CSS = `
-    #gfxs-fab{position:fixed;right:18px;bottom:18px;z-index:2147483000;background:#6c5ce7;color:#fff;
-      border:none;border-radius:999px;padding:12px 16px;font:600 13px/1 system-ui,sans-serif;cursor:pointer;
-      box-shadow:0 6px 20px rgba(108,92,231,.4)}
-    #gfxs-fab:hover{background:#5a4bd1}
-    #gfxs-overlay{position:fixed;inset:0;z-index:2147483001;background:rgba(20,18,40,.55);display:grid;
-      place-items:center;padding:16px;font-family:system-ui,Segoe UI,sans-serif}
-    #gfxs-modal{background:#fff;color:#1a1a2e;border-radius:16px;max-width:460px;width:100%;padding:26px 24px;
-      box-shadow:0 20px 60px rgba(0,0,0,.3);max-height:90vh;overflow:auto}
-    #gfxs-modal h2{margin:0 0 4px;font-size:19px}
-    #gfxs-modal .sub{color:#666;font-size:13px;margin:0 0 18px}
-    #gfxs-modal label{display:block;font-weight:600;font-size:13px;margin:14px 0 5px}
-    #gfxs-modal input,#gfxs-modal textarea{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #d9d9e6;
-      border-radius:8px;font-size:14px}
-    #gfxs-modal textarea{display:block;resize:vertical;font-family:inherit;line-height:1.4}
-    #gfxs-modal input:disabled{background:#f3f3f8;color:#888}
-    #gfxs-modal .hint{font-size:12px;color:#888;margin:4px 0 0}
-    #gfxs-row{display:flex;gap:8px;margin-top:8px}
-    #gfxs-modal button.act{flex:1;padding:11px;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px}
-    #gfxs-save{background:#6c5ce7;color:#fff}#gfxs-save:disabled{opacity:.6;cursor:not-allowed}
-    #gfxs-test{background:#eee;color:#333}
-    #gfxs-close{background:transparent;border:none;color:#999;cursor:pointer;font-size:13px;margin-top:12px;width:100%}
-    #gfxs-msg{margin-top:12px;font-size:13px;padding:10px 12px;border-radius:8px;display:none}
-    #gfxs-msg.ok{display:block;background:#e8f8ef;color:#1a7f4b}
-    #gfxs-msg.err{display:block;background:#fdecec;color:#c0392b}
-    @media (prefers-color-scheme: dark){
-      #gfxs-modal{background:#25232f;color:#eee}#gfxs-modal input,#gfxs-modal textarea{background:#1e1c28;border-color:#3a3850;color:#eee}
-      #gfxs-modal input:disabled{background:#2a2836}#gfxs-test{background:#3a3850;color:#eee}
-      #gfxs-modal .sub,#gfxs-modal .hint{color:#a8a6b8}
-    }`;
+  // --- UI: wygląd i zachowanie z modułu KLUB_UI. Identyfikatory gfxs- zostają dla logiki i testów. ----
+  const { esc, icon } = KLUB_UI;
+  let openDialog = null;
 
-  function el(html) { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstChild; }
-  function injectCssOnce() { if (document.getElementById('gfxs-css')) return; const s = document.createElement('style'); s.id = 'gfxs-css'; s.textContent = CSS; document.head.appendChild(s); }
+  const textInput = (id, value, placeholder, attrs = '') =>
+    `<input class="klub-input" id="${id}" type="text" value="${esc(value)}" placeholder="${esc(placeholder)}" ${attrs}>`;
+  const field = (id, label, control, hint) =>
+    `<div class="klub-field"><label class="klub-field__label" for="${id}">${esc(label)}</label>${control}${hint ? `<span class="klub-field__hint">${esc(hint)}</span>` : ''}</div>`;
 
   function openWizard({ config, clubName, sessionLoc, isPending }) {
-    injectCssOnce();
-    if (document.getElementById('gfxs-overlay')) return;
+    if (openDialog) return;
     const cfg = config || {};
     const locValue = isPending ? (sessionLoc || '') : (cfg.locationId || '');
-    const overlay = el(`
-      <div id="gfxs-overlay">
-        <div id="gfxs-modal" role="dialog" aria-modal="true">
-          <h2>${isPending ? 'Aktywuj wtyczki dla swojego klubu' : 'Ustawienia wtyczek'}</h2>
-          <p class="sub">${isPending
-            ? 'Wykryliśmy Twój klub z sesji Glofox. Uzupełnij dane sprzedaży i zapisz — wtyczki się uaktywnią.'
-            : 'Zmień nazwę sklepu, klienta sprzedażowego lub kaucję. Zapis od razu obowiązuje.'}</p>
+    const dialog = KLUB_UI.modal({
+      size: 'sm',
+      title: isPending ? 'Aktywuj wtyczki dla swojego klubu' : 'Ustawienia wtyczek',
+      sub: isPending
+        ? 'Wykryliśmy Twój klub z sesji w aplikacji. Uzupełnij dane sprzedaży i zapisz, a wtyczki się uaktywnią.'
+        : 'Zmień nazwę sklepu, klienta sprzedażowego lub kaucję. Zapis od razu obowiązuje.',
+      bodyHtml: `<div class="klub-form">
+        ${field('gfxs-club', 'Nazwa sklepu / klubu', textInput('gfxs-club', clubName || '', 'np. Nazwa Twojego klubu'))}
+        ${field('gfxs-loc', 'ID lokalizacji (locationId)', textInput('gfxs-loc', locValue, '', isPending ? '' : 'disabled'), isPending
+          ? 'Pobrane automatycznie z Twojej sesji. Zwykle nie trzeba zmieniać.'
+          : 'Przypisane do klubu. Zmiana wyłącznie przez administratora.')}
+        ${field('gfxs-client', 'Klient sprzedażowy: nazwa do wyszukania (autoklient)', textInput('gfxs-client', cfg.clientQuery || cfg.clientName || '', 'np. Sprzedaż detaliczna'))}
+        <div><button class="klub-btn" id="gfxs-test" type="button">Testuj dopasowanie</button></div>
+        ${field('gfxs-deposit', 'Kaucja: nazwa produktu do wyszukania (autokaucja)', textInput('gfxs-deposit', cfg.depositQuery || cfg.depositNameFallback || 'Kaucja Plastik', 'Kaucja Plastik'))}
+        ${field('gfxs-depositId', 'ID produktu kaucji (opcjonalnie)', textInput('gfxs-depositId', cfg.depositProductId || '', ''))}
+        ${field('gfxs-exempt', 'Osoby bez ograniczeń (wtyczka Uprawnienia)', '<textarea class="klub-input" id="gfxs-exempt" rows="3" spellcheck="false" placeholder="np. wlasciciel@klub.pl"></textarea>', 'Jeden e-mail w linii, ten sam, którym dana osoba loguje się do aplikacji. Lista działa w tej przeglądarce.')}
+        <div id="gfxs-msg" hidden></div>
+      </div>`,
+      footHtml: `<button class="klub-btn" id="gfxs-close" type="button">Zamknij</button>
+        <button class="klub-btn klub-btn--primary" id="gfxs-save" type="button">${isPending ? 'Aktywuj i zapisz' : 'Zapisz zmiany'}</button>`,
+      onClose: () => { openDialog = null; },
+    });
+    openDialog = dialog;
 
-          <label>Nazwa sklepu / klubu</label>
-          <input id="gfxs-club" type="text" value="${(clubName || '').replace(/"/g, '&quot;')}" placeholder="np. Nazwa Twojego klubu">
-
-          <label>ID lokalizacji (locationId)</label>
-          <input id="gfxs-loc" type="text" value="${locValue.replace(/"/g, '&quot;')}" ${isPending ? '' : 'disabled'}>
-          <p class="hint">${isPending
-            ? 'Pobrane automatycznie z Twojej sesji Glofox. Zwykle nie trzeba zmieniać.'
-            : 'Przypisane do klubu. Zmiana wyłącznie przez administratora.'}</p>
-
-          <label>Klient sprzedażowy — nazwa do wyszukania (autoklient)</label>
-          <input id="gfxs-client" type="text" value="${(cfg.clientQuery || cfg.clientName || '').replace(/"/g, '&quot;')}" placeholder="np. Sprzedaż detaliczna">
-          <div id="gfxs-row">
-            <button class="act" id="gfxs-test" type="button">Testuj dopasowanie</button>
-          </div>
-
-          <label>Kaucja — nazwa produktu do wyszukania (autokaucja)</label>
-          <input id="gfxs-deposit" type="text" value="${(cfg.depositQuery || cfg.depositNameFallback || 'Kaucja Plastik').replace(/"/g, '&quot;')}" placeholder="Kaucja Plastik">
-          <p class="hint">Opcjonalnie ID produktu kaucji, jeśli je znasz:</p>
-          <input id="gfxs-depositId" type="text" value="${(cfg.depositProductId || '').replace(/"/g, '&quot;')}" placeholder="(opcjonalne) ID produktu">
-
-          <label for="gfxs-exempt">Osoby bez ograniczeń (wtyczka Uprawnienia)</label>
-          <textarea id="gfxs-exempt" rows="3" spellcheck="false" placeholder="np. wlasciciel@klub.pl"></textarea>
-          <p class="hint">Jeden e-mail w linii, ten sam, którym dana osoba loguje się do Glofoxa. Lista działa w tej przeglądarce.</p>
-
-          <div id="gfxs-msg"></div>
-          <div id="gfxs-row">
-            <button class="act" id="gfxs-save" type="button">${isPending ? 'Aktywuj i zapisz' : 'Zapisz zmiany'}</button>
-          </div>
-          <button id="gfxs-close" type="button">Zamknij</button>
-        </div>
-      </div>`);
-    document.body.appendChild(overlay);
-
-    const $ = (id) => overlay.querySelector(id);
+    const $ = (selector) => dialog.root.querySelector(selector);
     const msg = $('#gfxs-msg');
-    const setMsg = (text, kind) => { msg.className = kind || ''; msg.textContent = text; };
-    $('#gfxs-close').onclick = () => overlay.remove();
+    const MSG_STYLES = {
+      info: ['klub-notice--info', 'info'],
+      ok: ['klub-notice--success', 'check'],
+      err: ['klub-notice--danger', 'alert'],
+    };
+    const setMsg = (text, kind) => {
+      const [tone, iconName] = MSG_STYLES[kind];
+      msg.hidden = false;
+      msg.className = `klub-notice ${tone}`;
+      msg.innerHTML = `${icon(iconName)}<span>${esc(text)}</span>`;
+      void msg.offsetWidth;
+      msg.classList.add('is-entering');
+    };
+    $('#gfxs-close').onclick = () => dialog.close('button');
     $('#gfxs-exempt').value = readExemptEmails().join('\n');
 
     $('#gfxs-test').onclick = async () => {
       const q = $('#gfxs-client').value.trim();
       if (!q) return setMsg('Wpisz najpierw nazwę klienta.', 'err');
-      setMsg('Testuję…', 'ok');
+      setMsg('Testuję…', 'info');
       const res = await testClientMatch(q);
       if (!res.ok) return setMsg(res.hint, 'err');
-      setMsg(res.count > 0 ? `Znaleziono ${res.count} pasujących wyników w Glofox ✔` : 'Brak wyników — sprawdź pisownię nazwy.', res.count > 0 ? 'ok' : 'err');
+      setMsg(res.count > 0 ? `Znaleziono ${res.count} pasujących wyników.` : 'Brak wyników. Sprawdź pisownię nazwy.', res.count > 0 ? 'ok' : 'err');
     };
 
     $('#gfxs-save').onclick = async () => {
@@ -643,7 +840,7 @@
       const clientVal = $('#gfxs-client').value.trim();
       const depositVal = $('#gfxs-deposit').value.trim();
       const depositIdVal = $('#gfxs-depositId').value.trim();
-      if (isPending && !locVal) return setMsg('Brak ID lokalizacji — zaloguj się do swojego klubu w Glofox.', 'err');
+      if (isPending && !locVal) return setMsg('Brak ID lokalizacji. Zaloguj się do swojego klubu w aplikacji.', 'err');
       saveExemptEmails($('#gfxs-exempt').value);
 
       const payload = {
@@ -657,11 +854,11 @@
         }
       };
       $('#gfxs-save').disabled = true;
-      setMsg('Zapisuję…', 'ok');
+      setMsg('Zapisuję…', 'info');
       const { status, body } = await postClaim(payload);
       $('#gfxs-save').disabled = false;
       if (status === 200 && body.ok) {
-        setMsg('Zapisano! Odśwież stronę Glofox — wtyczki się uaktywnią.', 'ok');
+        setMsg('Zapisano! Odśwież stronę, a wtyczki się uaktywnią.', 'ok');
         // Wymuś świeżą walidację przy następnym uruchomieniu (busta lokalny cache Setupu).
         try { GM_setValue(L.LICENSE_CACHE_KEY, ''); } catch (_e) {}
       } else {
@@ -671,22 +868,27 @@
   }
 
   function openNoKey() {
-    injectCssOnce();
-    if (document.getElementById('gfxs-overlay')) return;
-    const overlay = el(`<div id="gfxs-overlay"><div id="gfxs-modal">
-      <h2>Brak klucza licencyjnego</h2>
-      <p class="sub">Ten kreator uruchamiaj z instalatora (wtyczki.wotan91.pl), który wpieka Twój klucz.
-      Jeśli masz klucz, zainstaluj skrypt „Setup" ponownie przez przycisk w instalatorze.</p>
-      <button id="gfxs-close" class="act" style="background:#6c5ce7;color:#fff">OK</button>
-    </div></div>`);
-    document.body.appendChild(overlay);
-    overlay.querySelector('#gfxs-close').onclick = () => overlay.remove();
+    if (openDialog) return;
+    const dialog = KLUB_UI.modal({
+      size: 'sm',
+      title: 'Brak klucza licencyjnego',
+      bodyHtml: '<p style="margin:0">Ten kreator uruchamiaj z instalatora (wtyczki.wotan91.pl), który wpieka Twój klucz. Jeśli masz klucz, zainstaluj skrypt „Setup” ponownie przez przycisk w instalatorze.</p>',
+      footHtml: '<button class="klub-btn klub-btn--primary" id="gfxs-close" type="button">OK</button>',
+      onClose: () => { openDialog = null; },
+    });
+    openDialog = dialog;
+    dialog.root.querySelector('#gfxs-close').onclick = () => dialog.close('button');
   }
 
   function addFab() {
-    injectCssOnce();
     if (document.getElementById('gfxs-fab')) return;
-    const fab = el('<button id="gfxs-fab" title="Konfiguracja wtyczek">⚙ Ustawienia wtyczek</button>');
+    KLUB_UI.ensureStyles(document);
+    const fab = document.createElement('button');
+    fab.id = 'gfxs-fab';
+    fab.type = 'button';
+    fab.className = 'klub-root klub-launcher';
+    fab.title = 'Konfiguracja wtyczek';
+    fab.innerHTML = `${icon('sliders')}Ustawienia wtyczek`;
     document.body.appendChild(fab);
     fab.onclick = () => main(true);
     return fab;
@@ -697,7 +899,7 @@
     if (!KEY) { if (userTriggered) openNoKey(); return; }
     const result = await L.validate();
     if (!result || !result.valid) {
-      if (userTriggered) { injectCssOnce(); openNoKey(); }
+      if (userTriggered) openNoKey();
       console.info('[KLUB Setup] licencja nieaktywna/niepotwierdzona — kreator wstrzymany.');
       return;
     }
