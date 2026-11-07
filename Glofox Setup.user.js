@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Klub - Setup (Konfiguracja)
 // @namespace    wotan91
-// @version      1.6
+// @version      1.7
 // @description  Kreator konfiguracji pakietu wtyczek: aktywuje licencję dla Twojego klubu i ustawia klienta sprzedażowego oraz kaucję. Uruchom raz po zakupie; zostaje jako „Ustawienia wtyczek".
 // @match        https://app.glofox.com/*
 // @run-at       document-idle
